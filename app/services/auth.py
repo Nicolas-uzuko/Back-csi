@@ -37,7 +37,17 @@ class AuthService:
                 success=False, independent_commit=True,
             )
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Identifiants invalides")
-        access = create_access_token(user.id, {"role": user.role.value})
+        access = create_access_token(
+            user.id,
+            {
+                "role": user.role.value,
+                "email": user.email,
+                "nom_utilisateur": user.nom_utilisateur,
+                "nom": user.nom,
+                "prenom": user.prenom,
+                "matricule": user.matricule,
+            },
+        )
         refresh = create_refresh_token(user.id)
         await audit_service.log(
             self.db, action="CONNEXION", user_id=user.id, identifier=user.nom_utilisateur,
@@ -57,7 +67,17 @@ class AuthService:
         if user is None or user.statut != StatutUtilisateur.ACTIF:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token invalide")
         await audit_service.log(self.db, action="RENOUVELLEMENT_TOKEN", user_id=user.id, identifier=user.nom_utilisateur, ip_address=ip_address, success=True)
-        return create_access_token(user.id, {"role": user.role.value}), create_refresh_token(user.id)
+        return create_access_token(
+            user.id,
+            {
+                "role": user.role.value,
+                "email": user.email,
+                "nom_utilisateur": user.nom_utilisateur,
+                "nom": user.nom,
+                "prenom": user.prenom,
+                "matricule": user.matricule,
+            },
+        ), create_refresh_token(user.id)
 
     async def request_password_reset(self, email: str, ip_address: Optional[str] = None) -> None:
         user = await self.repository.by_email(email)
