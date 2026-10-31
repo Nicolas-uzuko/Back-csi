@@ -23,8 +23,20 @@ async def list_users(skip: int = Query(0, ge=0), limit: int = Query(50, ge=1, le
     return {"items": items, "total": total, "skip": skip, "limit": limit}
 
 
+@router.get("/admin-exists", response_model=dict)
+async def check_admin_exists(db: AsyncSession = Depends(get_db), actor: Utilisateur = Depends(require_permission(Permission.UTILISATEURS_LECTURE))):
+    exists = await UtilisateurRepository(db).has_admin()
+    return {"admin_exists": exists}
+
+
 @router.post("", response_model=UtilisateurRead, status_code=201)
 async def create_user(data: UtilisateurCreate, request: Request, db: AsyncSession = Depends(get_db), actor: Utilisateur = Depends(require_permission(Permission.UTILISATEURS_ECRITURE))):
+    repo = UtilisateurRepository(db)
+    if data.role == "ADMIN" and await repo.has_admin():
+        raise HTTPException(
+            status_code=400,
+            detail="Un administrateur existe déjà dans le système. Seul le rôle UTILISATEUR peut être attribué."
+        )
     values = data.model_dump(exclude={"mot_de_passe"})
     values["email"] = str(values["email"]).lower()
     values["mot_de_passe_hash"] = password_hash_for_create(data.mot_de_passe)

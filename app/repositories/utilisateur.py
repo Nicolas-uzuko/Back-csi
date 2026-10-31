@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.utilisateur import Utilisateur
@@ -20,3 +20,10 @@ class UtilisateurRepository(AsyncRepository[Utilisateur]):
 
     async def by_email(self, email: str) -> Optional[Utilisateur]:
         return await self.db.scalar(select(Utilisateur).where(Utilisateur.email == email.lower()))
+
+    async def has_admin(self) -> bool:
+        from app.models.utilisateur import RoleUtilisateur
+        count = await self.db.scalar(
+            select(func.count()).select_from(Utilisateur).where(Utilisateur.role == RoleUtilisateur.ADMIN)
+        )
+        return (count or 0) > 0
